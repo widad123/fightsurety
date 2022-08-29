@@ -5,12 +5,13 @@ pragma solidity ^0.4.25;
 // More info: https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2018/november/smart-contract-insecurity-bad-arithmetic/
 
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "./FlightSuretyData.sol";
 
 /************************************************** */
 /* FlightSurety Smart Contract                      */
 /************************************************** */
 contract FlightSuretyApp {
-    using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
+   using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
 
     /********************************************************************************************/
     /*                                       DATA VARIABLES                                     */
@@ -34,7 +35,7 @@ contract FlightSuretyApp {
     }
     mapping(bytes32 => Flight) private flights;
 
- 
+    FlightSuretyData flightSuretyData;
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
     /********************************************************************************************/
@@ -63,6 +64,17 @@ contract FlightSuretyApp {
         _;
     }
 
+    modifier requireAirlineRegistred(address airlineAddress)
+    {
+        require(!flightSuretyData.isAirlineRegistred(airlineAddress),"Airline has already registred!");
+        _;
+    }
+
+    modifier requireCallerAirline ()
+    {
+    require(flightSuretyData.isAirlineRegistred(msg.sender),"Airline has already registred!");
+        _; 
+   }
     /********************************************************************************************/
     /*                                       CONSTRUCTOR                                        */
     /********************************************************************************************/
@@ -73,10 +85,12 @@ contract FlightSuretyApp {
     */
     constructor
                                 (
+                                    address dataContract
                                 ) 
                                 public 
     {
         contractOwner = msg.sender;
+        flightSuretyData=FlightSuretyData(dataContract);
     }
 
     /********************************************************************************************/
@@ -88,7 +102,7 @@ contract FlightSuretyApp {
                             pure 
                             returns(bool) 
     {
-        return true;  // Modify to call data contract's status
+        return flightSuretyData.isOperational();  // Modify to call data contract's status
     }
 
     /********************************************************************************************/
@@ -101,27 +115,58 @@ contract FlightSuretyApp {
     *
     */   
     function registerAirline
-                            (   
+                            (
+                                address airlineAddress,
+                                uint256 amount
                             )
-                            external
-                            pure
-                            returns(bool success, uint256 votes)
+                            external 
+                            payable
+                            requireIsOperational
+                            requireAirlineRegistred(airlineAddress)
+                            requireCallerAirline
+                            returns(bool success)
     {
-        return (success, 0);
+        uint256 votes =0;
+        if(flightSuretyData.count>4){
+            for(uint256 i=0;i<flightSuretyData.count;i++){
+                if(flightSuretyData.airlines[msg.sender].voted==true){
+                    votes=votes.add(1);
+                }
+            }
+            if(votes.mod(2)==0){
+                flightSuretyData.fund(airlineAddress);
+                flightSuretyData.Airline memory airline=flightSuretyData.Airline(amount,true,false);
+                flightSuretyData.airlines[airlineAddress]=flightSuretyData.airline;
+                 flightSuretyData.count ++;
+                return(true);
+                }
+
+        }else{
+            flightSuretyData.registerAirline(airlineAddress);
+            return(true);
+
+        }
+        return (false);
     }
 
 
    /**
     * @dev Register a future flight for insuring.
-    *
+    * 
     */  
     function registerFlight
                                 (
+                                    address _airline,
+                                    string _flight
                                 )
                                 external
                                 pure
+                                requireIsOperational
     {
-
+        bytes32 flightKey = getFlightKey(_airline,_flight,block.timestamp);
+        require(!flights[flightKey].isRegistered,"flight is alredy registed");
+        Flight memory flight=Flight(true,STATUS_CODE_UNKNOWN,block.timestamp,_airline);
+        flights[flightKey]=flight;
     }
     
    /**
@@ -138,6 +183,11 @@ contract FlightSuretyApp {
                                 internal
                                 pure
     {
+        if((statusCode == STATUS_CODE_LATE_AIRLINE) ||
+            (statusCode == STATUS_CODE_LATE_TECHNICAL)){
+               bytes32 flightKey= getFlightKey(airline,flight,timestamp);
+               flightSuretyData.creditInsurees(flightKey);
+            }
     }
 
 

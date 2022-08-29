@@ -10,23 +10,42 @@ contract FlightSuretyData {
     /********************************************************************************************/
 
     address private contractOwner;                                      // Account used to deploy contract
-    bool private operational = true;                                    // Blocks all state changes throughout the contract if false
+    bool private operational = true;    // Blocks all state changes throughout the contract if false
+    
+    mapping(address=>Airline) private airlines;
+    uint256 private count = 0;
+    
+    struct Airline{
+        uint256 fund;
+        bool isRegistered;
+        bool voted;
+    }  
 
+    struct Passenger
+    {
+        address passengerAddress;
+        //bytes32 flightKey;
+        uint256 passengerBalance;
+    }
+    uint256 private countPassenger;
+    mapping(bytes32=>address) private passengers;
+    mapping(address=>uint256) private insureesBalance;
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
 
-
-    /**
+   /**
     * @dev Constructor
     *      The deploying account becomes contractOwner
     */
     constructor
                                 (
+                                 address airelineAddress
                                 ) 
                                 public 
     {
         contractOwner = msg.sender;
+        this.registerAirline(airelineAddress);
     }
 
     /********************************************************************************************/
@@ -56,6 +75,12 @@ contract FlightSuretyData {
         _;
     }
 
+    modifier requireAirlineRegistred(address airlineAddress)
+    {
+        require(airlines[airlineAddress].isRegistered!=true,"Airline has already registred!");
+        _;
+    }
+
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
@@ -73,7 +98,12 @@ contract FlightSuretyData {
         return operational;
     }
 
-
+ function isAirlineRegistred (address addr) public view returns (bool)
+    {
+        return airlines[addr].isRegistered;
+    }
+    
+    
     /**
     * @dev Sets contract operations on/off
     *
@@ -99,25 +129,37 @@ contract FlightSuretyData {
     *
     */   
     function registerAirline
-                            (   
+                            (
+                                address airlineAddress
                             )
                             external
-                            pure
+                            view
+                            requireContractOwner
+                            requireIsOperational
+                            requireAirlineRegistred(airlineAddress)
     {
+    Airline memory airline1 =Airline(0,true,false);
+    airlines[airlineAddress]=airline1;
+    count ++;
     }
-
+   
 
    /**
     * @dev Buy insurance for a flight
-    *
     */   
     function buy
-                            (                             
+                            (
+                                bytes32 flightKey 
                             )
                             external
                             payable
+                            requireIsOperational
     {
-
+        require(msg.value>=1,"The amount is not sufficent");
+        require(msg.sender!=address(0),"address must be valid");
+        Passenger memory passenger=Passenger(msg.sender,msg.value);
+        passengers[flightKey]=passenger;
+        countPassenger++;
     }
 
     /**
@@ -125,23 +167,44 @@ contract FlightSuretyData {
     */
     function creditInsurees
                                 (
+                                bytes32 flightKey 
                                 )
                                 external
                                 pure
     {
+        for (uint256 i = 0; i <= countPassenger; i++) {
+        uint256 amount=(passengers[flightKey].passengerBalance).mul(3).div(2);
+                insureesBalance [passengers[flightKey].passengerAddress].add(amount);
+        }
     }
     
 
     /**
      *  @dev Transfers eligible payout funds to insuree
+      struct Passenger
+    {
+        address passengerAddress;
+        //bytes32 flightKey;
+        uint256 passengerBalance;
+    }
+    uint256 private countPassenger;
+    mapping(bytes32=>address) private passengers;
+    mapping(address=>uint256) private insureesBalance;
      *
     */
     function pay
                             (
+                            address flightKey
                             )
                             external
                             pure
     {
+    require(msg.sender!=address(0),"address must be valid");
+    require(insureesBalance [passengers[flightKey].passengerAddress]==msg.sender,"the address is not valid");
+    require(insureesBalance [passengers[flightKey].passengerAddress]>0,"The amount is not sufficent");
+     uint256 amount = insureesBalance[msg.sender];
+     insureesBalance[msg.sender]=0;
+     msg.sender.transfer(amount);
     }
 
    /**
@@ -150,11 +213,18 @@ contract FlightSuretyData {
     *
     */   
     function fund
-                            (   
+                            ( 
+                               address airlineAddress,
+                               uint256 _amount  
                             )
                             public
                             payable
+                            requireIsOperational
     {
+        require(airlines[airlineAddress].isRegistered,"Airline not registred!");
+        require(_amount>=10 ether,"The amount is not sufficient");
+         uint256 amount =airlines[airlineAddress].fund;
+         airlines[airlineAddress].fund=amount.add(_amount);
     }
 
     function getFlightKey

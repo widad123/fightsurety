@@ -9,6 +9,8 @@ module.exports = {
       },
       network_id: '*',
       gas: 9999999
+      //gas: 4600000
+
     }
   },
   compilers: {

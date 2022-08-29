@@ -12,9 +12,8 @@ contract FlightSuretyData {
     address private contractOwner;                                      // Account used to deploy contract
     bool private operational = true;    // Blocks all state changes throughout the contract if false
     
-    mapping(address=>Airline) private airlines;
     uint256 private count = 0;
-    
+
     struct Airline{
         uint256 fund;
         bool isRegistered;
@@ -28,8 +27,10 @@ contract FlightSuretyData {
         uint256 passengerBalance;
     }
     uint256 private countPassenger;
+    mapping(address=>Airline) private airlines;
     mapping(bytes32=>address) private passengers;
     mapping(address=>uint256) private insureesBalance;
+    mapping(address=>bool) private authorizedContracts;
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
@@ -81,6 +82,11 @@ contract FlightSuretyData {
         _;
     }
 
+     modifier requireAuthorizedCaller() {
+        require(authorizedContracts[msg.sender],"Caller is not autorized");
+        _;
+    }
+
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
@@ -103,7 +109,20 @@ contract FlightSuretyData {
         return airlines[addr].isRegistered;
     }
     
-    
+      function authorizeCaller(address contractAddress)
+        external
+        requireContractOwner
+    {
+        authorizedContracts[contractAddress] = true;
+    }
+
+    function deauthorizeContract(address contractAddress)
+        external
+        requireContractOwner
+    {
+        delete authorizedContracts[contractAddress];
+    }
+
     /**
     * @dev Sets contract operations on/off
     *

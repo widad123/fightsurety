@@ -27,8 +27,8 @@ contract FlightSuretyData {
         uint256 passengerBalance;
     }
     uint256 private countPassenger;
-    mapping(address=>Airline) private airlines;
-    mapping(bytes32=>address) private passengers;
+    mapping(address=>Airline) public airlines;
+    mapping(bytes32=>Passenger) private passengers;
     mapping(address=>uint256) private insureesBalance;
     mapping(address=>bool) private authorizedContracts;
     /********************************************************************************************/
@@ -41,12 +41,14 @@ contract FlightSuretyData {
     */
     constructor
                                 (
-                                 address airelineAddress
+                                    address airlineAddress
                                 ) 
                                 public 
     {
         contractOwner = msg.sender;
-        this.registerAirline(airelineAddress);
+        Airline memory airline1 =Airline(0,true,false);
+    airlines[airlineAddress]=airline1;
+    count ++;
     }
 
     /********************************************************************************************/
@@ -78,7 +80,7 @@ contract FlightSuretyData {
 
     modifier requireAirlineRegistred(address airlineAddress)
     {
-        require(airlines[airlineAddress].isRegistered!=true,"Airline has already registred!");
+        require(airlines[airlineAddress].isRegistered==false,"Airline has already registred!");
         _;
     }
 
@@ -123,6 +125,15 @@ contract FlightSuretyData {
         delete authorizedContracts[contractAddress];
     }
 
+    function getCount() external view returns(uint256){
+        return count;
+    }
+
+    function isVoted(address addr) external view returns (bool){
+        return airlines[addr].voted;
+    }
+
+
     /**
     * @dev Sets contract operations on/off
     *
@@ -138,6 +149,12 @@ contract FlightSuretyData {
         operational = mode;
     }
 
+    function setAirline(address addr,uint256 amount) external returns(bool) {
+        airlines[addr]=Airline(amount,true,false);
+        return true;
+    }
+
+
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
@@ -152,14 +169,15 @@ contract FlightSuretyData {
                                 address airlineAddress
                             )
                             external
-                            view
                             requireContractOwner
                             requireIsOperational
                             requireAirlineRegistred(airlineAddress)
+                            returns(bool success)
     {
     Airline memory airline1 =Airline(0,true,false);
     airlines[airlineAddress]=airline1;
     count ++;
+    return true;
     }
    
 
@@ -189,7 +207,7 @@ contract FlightSuretyData {
                                 bytes32 flightKey 
                                 )
                                 external
-                                pure
+                                view
     {
         for (uint256 i = 0; i <= countPassenger; i++) {
         uint256 amount=(passengers[flightKey].passengerBalance).mul(3).div(2);
@@ -213,14 +231,14 @@ contract FlightSuretyData {
     */
     function pay
                             (
-                            address flightKey
+                            bytes32 flightKey
                             )
                             external
-                            pure
+                            payable
     {
     require(msg.sender!=address(0),"address must be valid");
-    require(insureesBalance [passengers[flightKey].passengerAddress]==msg.sender,"the address is not valid");
-    require(insureesBalance [passengers[flightKey].passengerAddress]>0,"The amount is not sufficent");
+    require(passengers[flightKey].passengerAddress==msg.sender,"the address is not valid");
+    require(insureesBalance[msg.sender]>0,"The amount is not sufficent");
      uint256 amount = insureesBalance[msg.sender];
      insureesBalance[msg.sender]=0;
      msg.sender.transfer(amount);
@@ -233,17 +251,15 @@ contract FlightSuretyData {
     */   
     function fund
                             ( 
-                               address airlineAddress,
-                               uint256 _amount  
                             )
                             public
                             payable
                             requireIsOperational
     {
-        require(airlines[airlineAddress].isRegistered,"Airline not registred!");
-        require(_amount>=10 ether,"The amount is not sufficient");
-         uint256 amount =airlines[airlineAddress].fund;
-         airlines[airlineAddress].fund=amount.add(_amount);
+        require(airlines[msg.sender].isRegistered,"Airline not registred!");
+        require(msg.value>=10 ether,"The amount is not sufficient");
+         uint256 amount =airlines[msg.sender].fund;
+         airlines[msg.sender].fund=amount.add(msg.value);
     }
 
     function getFlightKey

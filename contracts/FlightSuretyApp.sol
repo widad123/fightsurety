@@ -26,7 +26,7 @@ contract FlightSuretyApp {
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
     address private contractOwner;          // Account used to deploy contract
-
+    uint256 private MAX_AIRLINE;
     struct Flight {
         bool isRegistered;
         uint8 statusCode;
@@ -91,6 +91,7 @@ contract FlightSuretyApp {
     {
         contractOwner = msg.sender;
         flightSuretyData=FlightSuretyData(dataContract);
+
     }
 
     /********************************************************************************************/
@@ -99,7 +100,7 @@ contract FlightSuretyApp {
 
     function isOperational() 
                             public 
-                            pure 
+                            view 
                             returns(bool) 
     {
         return flightSuretyData.isOperational();  // Modify to call data contract's status
@@ -127,17 +128,15 @@ contract FlightSuretyApp {
                             returns(bool success)
     {
         uint256 votes =0;
-        if(flightSuretyData.count>4){
-            for(uint256 i=0;i<flightSuretyData.count;i++){
-                if(flightSuretyData.airlines[msg.sender].voted==true){
+        if(flightSuretyData.getCount() > MAX_AIRLINE){
+            for(uint256 i=0;i<flightSuretyData.getCount();i++){
+                if(flightSuretyData.isVoted(msg.sender)==true){
                     votes=votes.add(1);
                 }
             }
             if(votes.mod(2)==0){
-                flightSuretyData.fund(airlineAddress);
-                flightSuretyData.Airline memory airline=flightSuretyData.Airline(amount,true,false);
-                flightSuretyData.airlines[airlineAddress]=flightSuretyData.airline;
-                 flightSuretyData.count ++;
+                flightSuretyData.setAirline(airlineAddress,amount);
+                flightSuretyData.fund();
                 return(true);
                 }
 
@@ -160,7 +159,6 @@ contract FlightSuretyApp {
                                     string _flight
                                 )
                                 external
-                                pure
                                 requireIsOperational
     {
         bytes32 flightKey = getFlightKey(_airline,_flight,block.timestamp);
@@ -181,7 +179,7 @@ contract FlightSuretyApp {
                                     uint8 statusCode
                                 )
                                 internal
-                                pure
+                                view
     {
         if((statusCode == STATUS_CODE_LATE_AIRLINE) ||
             (statusCode == STATUS_CODE_LATE_TECHNICAL)){

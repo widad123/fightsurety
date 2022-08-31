@@ -26,7 +26,6 @@ contract FlightSuretyApp {
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
     address private contractOwner;          // Account used to deploy contract
-    uint256 private MAX_AIRLINE;
     struct Flight {
         bool isRegistered;
         uint8 statusCode;
@@ -36,6 +35,7 @@ contract FlightSuretyApp {
     mapping(bytes32 => Flight) private flights;
 
     FlightSuretyData flightSuretyData;
+    event Registered(address addr,uint256 count);
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
     /********************************************************************************************/
@@ -66,13 +66,13 @@ contract FlightSuretyApp {
 
     modifier requireAirlineRegistred(address airlineAddress)
     {
-        require(!flightSuretyData.isAirlineRegistred(airlineAddress),"Airline has already registred!");
+        require(!flightSuretyData.isAirline(airlineAddress),"Airline has already registred!");
         _;
     }
 
     modifier requireCallerAirline ()
     {
-    require(flightSuretyData.isAirlineRegistred(msg.sender),"Airline has already registred!");
+    require(flightSuretyData.isAirline(msg.sender),"Airline not registred!");
         _; 
    }
     /********************************************************************************************/
@@ -127,17 +127,20 @@ contract FlightSuretyApp {
                             requireCallerAirline
                             returns(bool success)
     {
+        
         uint256 votes =0;
-        if(flightSuretyData.getCount() > MAX_AIRLINE){
+        if(flightSuretyData.getCount() > flightSuretyData.getMaxAirline() ){
             for(uint256 i=0;i<flightSuretyData.getCount();i++){
                 if(flightSuretyData.isVoted(msg.sender)==true){
                     votes=votes.add(1);
                 }
             }
             if(votes.mod(2)==0){
+                require(amount==10 ether,"fund insufficent");
                 flightSuretyData.setAirline(airlineAddress,amount);
-                flightSuretyData.fund();
+                flightSuretyData.fund(airlineAddress,amount);
                 return(true);
+
                 }
 
         }else{
@@ -145,7 +148,8 @@ contract FlightSuretyApp {
             return(true);
 
         }
-        return (false);
+    emit Registered(airlineAddress,flightSuretyData.getCount());
+
     }
 
 

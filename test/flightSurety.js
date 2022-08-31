@@ -90,7 +90,41 @@ contract('Flight Surety Tests', async (accounts) => {
 
   });
 
-  it("")
- 
+  it("(airline) regester five airlines using registerAirline",async ()=>{
+    let airlineOne = accounts[3];
+    let airlineTwo = accounts[4];
+    let airlineThree = accounts[5];
+    let airlineFour = accounts[6];
+    let price = new BigNumber(10);
+
+    
+
+    try{
+        await config.flightSuretyApp.registerAirline(airlineOne,0, {from: config.firstAirline});
+        await config.flightSuretyApp.registerAirline(airlineTwo,0, {from: config.firstAirline});
+        await config.flightSuretyApp.registerAirline(airlineThree,0, {from: config.firstAirline});
+
+        assert.equal(await config.flightSuretyData.isAirline.call(airlineOne), true, "airlineOne registred");
+        assert.equal(await config.flightSuretyData.isAirline.call(airlineTwo), true, "airlineTwo registred");
+        assert.equal(await config.flightSuretyData.isAirline.call(airlineThree), true, "airlineThree registred");
+
+        assert.equal(await config.flightSuretyData.setVote.call(config.firstAirline),true, "firstAirlinevoted");
+        assert.equal(await config.flightSuretyData.setVote.call(airlineTwo),true, "airlineTwo voted");
+
+       // await config.flightSuretyApp.registerAirline(airlineFour, price,{from: config.firstAirline});
+       await config.flightSuretyApp.registerAirline(airlineFour,price, {from:airlineTwo,gas: 1500000});
+        assert.equal(await config.flightSuretyData.isAirline.call(airlineFour), true, "airlineFour registred");
+
+
+    }catch(e){
+        console.log(e);
+    }
+    
+
+
+
+
+  })
+
 
 });

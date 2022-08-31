@@ -11,7 +11,7 @@ contract FlightSuretyData {
 
     address private contractOwner;                                      // Account used to deploy contract
     bool private operational = true;    // Blocks all state changes throughout the contract if false
-    
+    uint256 private MAX_AIRLINE=4;
     uint256 private count = 0;
 
     struct Airline{
@@ -27,7 +27,7 @@ contract FlightSuretyData {
         uint256 passengerBalance;
     }
     uint256 private countPassenger;
-    mapping(address=>Airline) public airlines;
+    mapping(address=>Airline) private airlines;
     mapping(bytes32=>Passenger) private passengers;
     mapping(address=>uint256) private insureesBalance;
     mapping(address=>bool) private authorizedContracts;
@@ -106,7 +106,7 @@ contract FlightSuretyData {
         return operational;
     }
 
- function isAirlineRegistred (address addr) public view returns (bool)
+ function isAirline (address addr) public view returns (bool)
     {
         return airlines[addr].isRegistered;
     }
@@ -129,8 +129,17 @@ contract FlightSuretyData {
         return count;
     }
 
+    function getMaxAirline() external view returns(uint256){
+        return MAX_AIRLINE;
+    }
+
+
     function isVoted(address addr) external view returns (bool){
         return airlines[addr].voted;
+    }
+
+    function setVote(address addr) external returns (bool){
+        return airlines[addr].voted=true;
     }
 
 
@@ -151,6 +160,7 @@ contract FlightSuretyData {
 
     function setAirline(address addr,uint256 amount) external returns(bool) {
         airlines[addr]=Airline(amount,true,false);
+            count ++;
         return true;
     }
 
@@ -169,7 +179,6 @@ contract FlightSuretyData {
                                 address airlineAddress
                             )
                             external
-                            requireContractOwner
                             requireIsOperational
                             requireAirlineRegistred(airlineAddress)
                             returns(bool success)
@@ -218,15 +227,6 @@ contract FlightSuretyData {
 
     /**
      *  @dev Transfers eligible payout funds to insuree
-      struct Passenger
-    {
-        address passengerAddress;
-        //bytes32 flightKey;
-        uint256 passengerBalance;
-    }
-    uint256 private countPassenger;
-    mapping(bytes32=>address) private passengers;
-    mapping(address=>uint256) private insureesBalance;
      *
     */
     function pay
@@ -251,15 +251,18 @@ contract FlightSuretyData {
     */   
     function fund
                             ( 
+                                address airlineAddress,
+                                uint256 amount
                             )
-                            public
+                            external
                             payable
                             requireIsOperational
+                            
     {
-        require(airlines[msg.sender].isRegistered,"Airline not registred!");
-        require(msg.value>=10 ether,"The amount is not sufficient");
-         uint256 amount =airlines[msg.sender].fund;
-         airlines[msg.sender].fund=amount.add(msg.value);
+        require(airlines[airlineAddress].isRegistered,"Airline not registred!");
+        require(amount==10 ether,"The amount is not sufficient");
+         uint256 funds =airlines[airlineAddress].fund;
+         airlines[airlineAddress].fund=funds.add(amount);
     }
 
     function getFlightKey
@@ -283,8 +286,8 @@ contract FlightSuretyData {
                             external 
                             payable 
     {
-        fund();
-    }
+         this.fund(msg.sender, msg.value);   
+   }
 
 
 }

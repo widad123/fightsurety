@@ -119,12 +119,19 @@ contract('Flight Surety Tests', async (accounts) => {
     }catch(e){
         console.log(e);
     }
-    
+  });
 
+  it("register a flight",async()=>{
+    let aireline =accounts[5];
 
+    try {
+        await config.flightSuretyApp.registerFlight(aireline,"transavia");
+       // assert.equal(, true, "register a flight is correct");
+    } catch (error) {
+        console.log(error);
+    }
 
-
-  })
+  });
 
 
 });

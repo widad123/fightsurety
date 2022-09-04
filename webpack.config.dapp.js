@@ -21,7 +21,7 @@ module.exports = {
       {
         test: /\.(png|svg|jpg|gif)$/,
         use: [
-          'file-loader'
+         'file-loader'
         ]
       },
       {
@@ -39,14 +39,9 @@ module.exports = {
   resolve: {
     extensions: [".js"]
   },
- // devServer: {
-   // contentBase: path.join(__dirname, "dapp"),
-   // port: 8000,
-   // stats: "minimal"
-   devServer: {
-
-    static: {
-      directory: path.join(__dirname, "./src")
-    },},
- // }
+  devServer: {
+    contentBase: path.join(__dirname, "dapp"),
+    port: 8000,
+    stats: "minimal"
+  }
 };

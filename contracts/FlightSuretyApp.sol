@@ -135,7 +135,7 @@ contract FlightSuretyApp {
                     votes=votes.add(1);
                 }
             }
-            if(votes.mod(2)==0){
+            if(votes%2==0){
                 require(amount==10 ether,"fund insufficent");
                 flightSuretyData.setAirline(airlineAddress,amount);
                 flightSuretyData.fund(airlineAddress,amount);
@@ -164,11 +164,13 @@ contract FlightSuretyApp {
                                 )
                                 external
                                 requireIsOperational
+                                returns(bool)
     {
         bytes32 flightKey = getFlightKey(_airline,_flight,block.timestamp);
         require(!flights[flightKey].isRegistered,"flight is alredy registed");
         Flight memory flight=Flight(true,STATUS_CODE_UNKNOWN,block.timestamp,_airline);
         flights[flightKey]=flight;
+        return true;
     }
     
    /**

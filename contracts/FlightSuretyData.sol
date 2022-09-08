@@ -28,12 +28,13 @@ contract FlightSuretyData {
     }
     uint256 private countPassenger;
     mapping(address=>Airline) private airlines;
-    mapping(bytes32=>Passenger) private passengers;
+    mapping(bytes32=>Passenger) public passengers;
     mapping(address=>uint256) private insureesBalance;
     mapping(address=>bool) private authorizedContracts;
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
+        event PassengerAdded(address passengerAddress, uint256 passengerBalance,uint256 countPassenger);
 
    /**
     * @dev Constructor
@@ -133,6 +134,10 @@ contract FlightSuretyData {
         return MAX_AIRLINE;
     }
 
+    function getPassengerCount() external view returns(uint256){
+        return countPassenger;
+    }
+
 
     function isVoted(address addr) external view returns (bool){
         return airlines[addr].voted;
@@ -180,6 +185,7 @@ contract FlightSuretyData {
                             )
                             external
                             requireIsOperational
+                            requireAuthorizedCaller
                             requireAirlineRegistred(airlineAddress)
                             returns(bool success)
     {
@@ -200,12 +206,15 @@ contract FlightSuretyData {
                             external
                             payable
                             requireIsOperational
+                            
+
     {
         require(msg.value>=1,"The amount is not sufficent");
         require(msg.sender!=address(0),"address must be valid");
         Passenger memory passenger=Passenger(msg.sender,msg.value);
         passengers[flightKey]=passenger;
         countPassenger++;
+        emit PassengerAdded(passengers[flightKey].passengerAddress, passengers[flightKey].passengerBalance,countPassenger);
     }
 
     /**
@@ -215,15 +224,15 @@ contract FlightSuretyData {
                                 (
                                 bytes32 flightKey 
                                 )
+                                requireIsOperational
                                 external
-                                view
     {
         for (uint256 i = 0; i <= countPassenger; i++) {
-        uint256 amount=(passengers[flightKey].passengerBalance).mul(3).div(2);
-                insureesBalance [passengers[flightKey].passengerAddress].add(amount);
-        }
+        uint256 amount=(passengers[flightKey].passengerBalance).div(2);
+                passengers[flightKey].passengerBalance=amount.mul(3);
+                insureesBalance [passengers[flightKey].passengerAddress]= passengers[flightKey].passengerBalance;
     }
-    
+    }
 
     /**
      *  @dev Transfers eligible payout funds to insuree
@@ -235,12 +244,15 @@ contract FlightSuretyData {
                             )
                             external
                             payable
+                            requireIsOperational
+
     {
     require(msg.sender!=address(0),"address must be valid");
     require(passengers[flightKey].passengerAddress==msg.sender,"the address is not valid");
     require(insureesBalance[msg.sender]>0,"The amount is not sufficent");
      uint256 amount = insureesBalance[msg.sender];
      insureesBalance[msg.sender]=0;
+     passengers[flightKey].passengerBalance=0;
      msg.sender.transfer(amount);
     }
 
@@ -257,6 +269,8 @@ contract FlightSuretyData {
                             external
                             payable
                             requireIsOperational
+                            requireAuthorizedCaller
+
                             
     {
         require(airlines[airlineAddress].isRegistered,"Airline not registred!");
@@ -283,7 +297,8 @@ contract FlightSuretyData {
     *
     */
     function() 
-                            external 
+                            external
+                            requireAuthorizedCaller
                             payable 
     {
          this.fund(msg.sender, msg.value);   

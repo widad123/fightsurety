@@ -32,11 +32,11 @@ contract FlightSuretyApp {
         uint256 updatedTimestamp;        
         address airline;
     }
-    mapping(bytes32 => Flight) private flights;
+    mapping(bytes32 => Flight) public flights;
 
     FlightSuretyData flightSuretyData;
     event Registered(address addr,uint256 count);
-    /********************************************************************************************/
+    event FlightRegistred(bytes32 flightKey,address airline,bool isRegistered,uint256 timestamp);    /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
     /********************************************************************************************/
 
@@ -170,8 +170,10 @@ contract FlightSuretyApp {
         require(!flights[flightKey].isRegistered,"flight is alredy registed");
         Flight memory flight=Flight(true,STATUS_CODE_UNKNOWN,block.timestamp,_airline);
         flights[flightKey]=flight;
+        emit FlightRegistred(flightKey,flights[flightKey].airline,flights[flightKey].isRegistered,flights[flightKey].updatedTimestamp);
         return true;
     }
+
     
    /**
     * @dev Called after oracle has updated flight status
@@ -186,6 +188,7 @@ contract FlightSuretyApp {
                                 )
                                 internal
                                 view
+
     {
         if((statusCode == STATUS_CODE_LATE_AIRLINE) ||
             (statusCode == STATUS_CODE_LATE_TECHNICAL)){

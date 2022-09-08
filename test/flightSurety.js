@@ -108,10 +108,9 @@ contract('Flight Surety Tests', async (accounts) => {
         assert.equal(await config.flightSuretyData.isAirline.call(airlineTwo), true, "airlineTwo registred");
         assert.equal(await config.flightSuretyData.isAirline.call(airlineThree), true, "airlineThree registred");
 
-        assert.equal(await config.flightSuretyData.setVote.call(config.firstAirline),true, "firstAirlinevoted");
+        assert.equal(await config.flightSuretyData.setVote.call(config.firstAirline),true, "firstAirline voted");
         assert.equal(await config.flightSuretyData.setVote.call(airlineTwo),true, "airlineTwo voted");
 
-       // await config.flightSuretyApp.registerAirline(airlineFour, price,{from: config.firstAirline});
        await config.flightSuretyApp.registerAirline(airlineFour,price, {from:airlineTwo,gas: 1500000});
         assert.equal(await config.flightSuretyData.isAirline.call(airlineFour), true, "airlineFour registred");
 
@@ -122,14 +121,83 @@ contract('Flight Surety Tests', async (accounts) => {
   });
 
   it("register a flight",async()=>{
-    let aireline =accounts[5];
+    let airline =accounts[7];
 
     try {
-        await config.flightSuretyApp.registerFlight(aireline,"transavia");
-       // assert.equal(, true, "register a flight is correct");
+        let result = await config.flightSuretyApp.registerFlight(airline,"flightTest");
+        const event=  await result.logs[0].args;
+        let key =event.flightKey;
+        let result2 =await config.flightSuretyApp.flights.call(key);
+        assert.equal( event.isRegistered,true,"flight registered");
+        assert.equal( event.airline,result2.airline,"aireline is correct");
+        //console.log(result2);
+        assert.equal( event.timestamp.toString(),result2.updatedTimestamp.toString(),"Timestamp is correct");
     } catch (error) {
         console.log(error);
     }
+
+  });
+  it("buy work",async()=>{
+    let airline =accounts[8];
+    let price=new BigNumber(2);
+
+    try {
+        let result = await config.flightSuretyApp.registerFlight(airline,"flightTest2");
+        const event=  await result.logs[0].args;
+        let flightKey =event.flightKey;
+        let result2 = await config.flightSuretyData.buy(flightKey,{value:price});
+        const event2=await result2.logs[0].args;
+        let passengers= await config.flightSuretyData.passengers.call(flightKey);
+        assert.equal( event2.passengerAddress,passengers.passengerAddress,"Address is registered");
+        assert.equal( event2.passengerBalance.toString(),passengers.passengerBalance.toString(),"Balance is correct");
+        let passengerCount=await config.flightSuretyData.getPassengerCount.call();
+        assert.equal( event2.countPassenger.toString(),passengerCount.toString(),"PassengerCount is correct");
+    } catch (error) {
+        console.log(error);
+    }
+    
+
+  });
+   
+    it('creditInsurees work',async()=>{
+    let airline =accounts[9];
+    let price=new BigNumber(2);
+    let balanceExpected=new BigNumber(3);
+
+    let result = await config.flightSuretyApp.registerFlight(airline,"flightTest3");
+    const event=  await result.logs[0].args;
+    let flightKey =event.flightKey;
+
+    await config.flightSuretyData.buy(flightKey,{value:price});
+    let passengers1= await config.flightSuretyData.passengers.call(flightKey);
+    assert.equal(passengers1.passengerBalance.toString(),price.toString(),"Balance passenger before credit insures is correct");
+     await config.flightSuretyData.creditInsurees(flightKey);
+     let passengers2= await config.flightSuretyData.passengers.call(flightKey);
+     assert.equal(passengers2.passengerBalance.toString(),balanceExpected.toString(),"Balance passenger after credit insures is correct");
+    });
+
+
+  it("pay work",async()=>{
+    let airline =accounts[10];
+    let price=new BigNumber(2);
+
+    let result = await config.flightSuretyApp.registerFlight(airline,"flightTest4");
+    const event=  await result.logs[0].args;
+    let flightKey =event.flightKey;
+
+    await config.flightSuretyData.buy(flightKey,{value:price});
+    await config.flightSuretyData.creditInsurees(flightKey);
+    let passengers1= await config.flightSuretyData.passengers.call(flightKey);
+    assert.equal(passengers1.passengerBalance.toString(),"3","Balance passenger before pay is correct");
+    await config.flightSuretyData.pay(flightKey);
+    let passengers2= await config.flightSuretyData.passengers.call(flightKey);
+    assert.equal(passengers2.passengerBalance.toString(),"0","Balance passenger after pay is correct");
+
+
+   // let passengers1= await config.flightSuretyData.passengers.call(flightKey);
+     //assert.equal(passengers2.passengerBalance.toString(),balanceExpected.toString(),"Balance passenger after credit insures is correct");
+    
+
 
   });
 

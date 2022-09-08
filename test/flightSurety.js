@@ -192,14 +192,17 @@ contract('Flight Surety Tests', async (accounts) => {
     await config.flightSuretyData.pay(flightKey);
     let passengers2= await config.flightSuretyData.passengers.call(flightKey);
     assert.equal(passengers2.passengerBalance.toString(),"0","Balance passenger after pay is correct");
-
-
-   // let passengers1= await config.flightSuretyData.passengers.call(flightKey);
-     //assert.equal(passengers2.passengerBalance.toString(),balanceExpected.toString(),"Balance passenger after credit insures is correct");
-    
-
-
   });
 
+  it("fund work",async()=>{
+    let amount=new BigNumber(web3.utils.toWei('10', 'ether'));
+
+    let airline1=await config.flightSuretyData.airlines.call(accounts[3]);
+    assert.equal(airline1.fund.toString(),"0","before fund");
+    await config.flightSuretyData.fund(accounts[3],amount,{gas: 1500000});
+    let airline2=await config.flightSuretyData.airlines.call(accounts[3]);
+    assert.equal(airline2.fund.toString(),amount.toString(),"after fund");
+    
+  });
 
 });

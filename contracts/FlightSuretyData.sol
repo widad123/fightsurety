@@ -27,7 +27,7 @@ contract FlightSuretyData {
         uint256 passengerBalance;
     }
     uint256 private countPassenger;
-    mapping(address=>Airline) private airlines;
+    mapping(address=>Airline) public airlines;
     mapping(bytes32=>Passenger) public passengers;
     mapping(address=>uint256) private insureesBalance;
     mapping(address=>bool) private authorizedContracts;
@@ -269,12 +269,10 @@ contract FlightSuretyData {
                             external
                             payable
                             requireIsOperational
-                            requireAuthorizedCaller
-
                             
     {
         require(airlines[airlineAddress].isRegistered,"Airline not registred!");
-        require(amount==10 ether,"The amount is not sufficient");
+        require(amount>=10 ether,"The amount is not sufficient");
          uint256 funds =airlines[airlineAddress].fund;
          airlines[airlineAddress].fund=funds.add(amount);
     }

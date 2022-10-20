@@ -39,6 +39,11 @@ To build dapp for prod:
 
 Deploy the contents of the ./dapp folder
 
+when dapp running should like this:
+![My Image](./images/DappRunning.PNG)
+
+
+
 
 ## Resources
 

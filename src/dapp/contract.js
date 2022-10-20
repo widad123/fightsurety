@@ -1,4 +1,5 @@
 import FlightSuretyApp from '../../build/contracts/FlightSuretyApp.json';
+import FlightSuretyData from '../../build/contracts/FlightSuretyData.json';
 import Config from './config.json';
 import Web3 from 'web3';
 
@@ -8,10 +9,12 @@ export default class Contract {
         let config = Config[network];
         this.web3 = new Web3(new Web3.providers.HttpProvider(config.url));
         this.flightSuretyApp = new this.web3.eth.Contract(FlightSuretyApp.abi, config.appAddress);
+        this.flightSuretyData = new this.web3.eth.Contract(FlightSuretyData.abi, config.dataAddress);
         this.initialize(callback);
         this.owner = null;
         this.airlines = [];
         this.passengers = [];
+
     }
 
     initialize(callback) {
@@ -52,5 +55,46 @@ export default class Contract {
             .send({ from: self.owner}, (error, result) => {
                 callback(error, payload);
             });
-    }
+    };
+
+    getCount(callback){
+        let self=this;
+        self.flightSuretyData.methods
+        .getCount()
+        .call({ from: self.owner}, (err, res) => {
+            callback(err, res);
+        });
+    };
+
+    registerAirline(airline,amount,callback){
+       let self=this;
+       let payload ={
+        airline:airline,
+        amount:amount
+       };
+       self.flightSuretyApp.methods
+       .registerAirline(payload.airline,payload.amount)
+       .send({from:"0x8d71f4859257D798Eb1Dfde2051a3c2906F3CAaA"},(error, result) => {
+        callback(error, payload);
+    });
+
+    };
+
+    registerFlight(airline,flight,callback){
+        let self=this;
+        let payload ={
+         airline:airline,
+         flight:flight
+        };
+        self.flightSuretyApp.methods
+        .registerFlight(payload.airline,payload.flight)
+        .send({from: self.owner, gas:3000000},(error, result) => {
+         callback(error, payload);
+     });
+ 
+ 
+     }
+
+
+
 }

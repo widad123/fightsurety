@@ -24,9 +24,34 @@ import './flightsurety.css';
             contract.fetchFlightStatus(flight, (error, result) => {
                 display('Oracles', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
             });
-        })
+        });
+
+        
+        contract.getCount((error, result) => {
+            console.log(error,result);
+            display('getcount', 'count', [ { label: 'count airline', error: error, value: result} ]);
+        });
+
+        DOM.elid('airline').addEventListener('click', () =>{
+            let airline = DOM.elid('registerAirline').value;
+            let amount= DOM.elid('amount').value;
+            contract.registerAirline(airline,amount,(error, result) => {
+                display('Airline','the address is an airline',[{ label: 'Airline', error: error, value: result.airline+" "+result.amount} ]);
+            });
+        });
+
+        DOM.elid('submitFlight').addEventListener('click', () =>{
+            let airline = DOM.elid('airlineFlight').value;
+            let flight= DOM.elid('flight').value;
+            contract.registerFlight(airline,flight,(error, result) => {
+                display('Flight','regester a flight',[{ label: 'A new flight', error: error, value: result.airline+" "+result.flight} ]);
+            });
+        });
+       
+
     
     });
+
     
 
 })();

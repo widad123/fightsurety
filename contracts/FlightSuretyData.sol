@@ -185,7 +185,6 @@ contract FlightSuretyData {
                             )
                             external
                             requireIsOperational
-                            requireAuthorizedCaller
                             requireAirlineRegistred(airlineAddress)
                             returns(bool success)
     {
